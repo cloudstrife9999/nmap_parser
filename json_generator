@@ -1,0 +1,76 @@
+#!/usr/bin/python3
+
+import json
+
+from collections import OrderedDict
+from argparse import ArgumentParser
+
+
+def parse():
+    src_file, dst_file = __parse_args()
+
+    with open(src_file, "r") as src:
+        lines = src.readlines()
+
+    __parse_lines(lines, dst_file)
+
+
+def __parse_args():
+    parser = ArgumentParser(description="Nmap-output-to-json parser")
+    parser.add_argument('-s', '--src', required=True, metavar='<source-file-path>', type=str, action='store',
+                        help='Source file')
+    parser.add_argument('-d', '--dst', required=True, metavar='<destination-file-path>', type=str, action='store',
+                        help='Output JSON file')
+
+    args = parser.parse_args()
+
+    return args.src, args.dst
+
+
+def __parse_lines(lines, dst_file):
+    d = OrderedDict()
+    host = None
+    services = None
+
+    for line in lines:
+        if "Nmap scan report for " in line:
+            host = OrderedDict()
+            services = OrderedDict()
+            hostname, ip = __get_hostname_and_ip(line.replace("\n", ""))
+            host["ip"] = ip
+            host["hostname"] = hostname
+        elif "tcp" in line and "open" in line:
+            port, service = __get_port_and_service(line.replace("\n", ""))
+            services[port] = service
+        else:
+            host["services"] = services
+            d[host["ip"]] = host
+
+    host["services"] = services
+    d[host["ip"]] = host
+
+    __dump_to_json(d, dst_file)
+
+
+def __get_hostname_and_ip(line):
+    tokens = line.replace("Nmap scan report for ", "").replace("(", "").replace(")", "").split(" ")
+
+    if len(tokens) == 1:
+        return "UNDEFINED", tokens[0]
+    else:
+        return tokens
+
+
+def __get_port_and_service(line):
+    return line.split("/")[0], line.split(" ")[-1]
+
+
+def __dump_to_json(d, dst_file):
+    with open(dst_file, "w") as dest:
+        json.dump(d, dest, indent=4)
+
+
+if __name__ == "__main__":
+    print("Begin parsing and generating JSON...")
+    parse()
+    print("DONE.")

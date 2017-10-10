@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-from argparse import *
+from argparse import ArgumentParser
 
 
 def parse():
@@ -134,6 +134,6 @@ def __allowed(line):
 
 
 if __name__ == "__main__":
-    print "Begin parsing..."
+    print("Begin parsing...")
     parse()
-    print "Done."
+    print("Done.")
